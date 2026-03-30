@@ -44,6 +44,10 @@ next-env.d.ts
 prisma/dev.db
 prisma/dev.db-journal
 
+# misc Windows artifacts
+nul
+%USERPROFILE%.sshknown_hosts
+
 # backups
 backups/
 
