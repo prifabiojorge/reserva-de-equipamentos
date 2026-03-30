@@ -1,16 +1,12 @@
 "use client"
 
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import {
-  startOfWeek,
   endOfWeek,
   addWeeks,
   subWeeks,
   format,
-  eachDayOfInterval,
-  isSameDay,
-  isToday,
+  getDay,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -20,7 +16,6 @@ interface WeekNavigatorProps {
 
 export function WeekNavigator({ currentWeekStart }: WeekNavigatorProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 })
   const prevWeek = subWeeks(currentWeekStart, 1)
@@ -28,12 +23,9 @@ export function WeekNavigator({ currentWeekStart }: WeekNavigatorProps) {
   const today = new Date()
 
   function navigateToWeek(date: Date) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("semana", format(date, "yyyy-MM-dd"))
-    router.push(`/reservas?${params.toString()}`)
+    const dateStr = format(date, "yyyy-MM-dd")
+    router.push(`/reservas?semana=${dateStr}`)
   }
-
-  const days = eachDayOfInterval({ start: currentWeekStart, end: weekEnd })
 
   return (
     <div className="flex items-center justify-between mb-4">
@@ -65,12 +57,12 @@ export function WeekNavigator({ currentWeekStart }: WeekNavigatorProps) {
         {format(weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
       </h3>
 
-      <Link
-        href="/reservas/nova"
+      <button
+        onClick={() => router.push("/reservas/nova")}
         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
       >
         + Nova
-      </Link>
+      </button>
     </div>
   )
 }

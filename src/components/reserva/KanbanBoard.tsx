@@ -3,7 +3,7 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isSameDay,
-  isWeekend,
+  getDay,
 } from "date-fns"
 import { getReservasPorPeriodo } from "@/actions/reservas"
 import { WeekNavigator } from "./WeekNavigator"
@@ -17,8 +17,11 @@ export async function KanbanBoard({ weekStart }: KanbanBoardProps) {
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
   const allDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
-  // Apenas dias úteis (seg-sex)
-  const workDays = allDays.filter((d) => !isWeekend(d))
+  // Apenas dias úteis (seg=1 até sex=5)
+  const workDays = allDays.filter((d) => {
+    const dow = getDay(d)
+    return dow >= 1 && dow <= 5
+  })
 
   const reservas = await getReservasPorPeriodo(weekStart, weekEnd)
 
