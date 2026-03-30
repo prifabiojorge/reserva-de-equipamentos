@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USUÁRIOS =====
+model Usuario {
+  id           String      @id @default(cuid())
+  nome         String
+  email        String      @unique
+  senha        String
+  papel        String      @default("PROFESSOR")
+  ativo        Boolean     @default(true)
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  reservas     Reserva[]
+  logs         LogAuditoria[]
+}
+
+// ===== CATEGORIAS DE RECURSOS =====
+model CategoriaRecurso {
+  id       String    @id @default(cuid())
+  nome     String    @unique
+  icone    String?
+  recursos Recurso[]
+}
+
+// ===== RECURSOS (Equipamentos e Espaços) =====
+model Recurso {
+  id               String           @id @default(cuid())
+  nome             String
+  descricao        String?
+  categoriaId      String
+  categoria        CategoriaRecurso @relation(fields: [categoriaId], references: [id])
+  quantidadeTotal  Int              @default(1)
+  quantidadeMinima Int              @default(1)
+  ativo            Boolean          @default(true)
+  cor              String?
+  criadoEm         DateTime         @default(now())
+  reservas         Reserva[]
+
+  @@index([categoriaId])
+}
+
+// ===== CONFIGURAÇÃO DE HORÁRIOS (TURNOS + AULAS) =====
+model Turno {
+  id       String   @id @default(cuid())
+  nome     String   @unique
+  ordem    Int
+  horarios Horario[]
+}
+
+model Horario {
+  id          String          @id @default(cuid())
+  turnoId     String
+  turno       Turno           @relation(fields: [turnoId], references: [id])
+  numero      Int
+  horaInicio  String
+  horaFim     String
+  reservas    ReservaHorario[]
+
+  @@unique([turnoId, numero])
+  @@index([turnoId])
+}
+
+// ===== RESERVAS =====
+model Reserva {
+  id              String            @id @default(cuid())
+  data            DateTime
+  usuarioId       String
+  usuario         Usuario           @relation(fields: [usuarioId], references: [id])
+  recursoId       String
+  recurso         Recurso           @relation(fields: [recursoId], references: [id])
+  quantidadeUsada Int               @default(1)
+  observacao      String?
+  status          String            @default("CONFIRMADA")
+  criadoEm        DateTime          @default(now())
+  atualizadoEm    DateTime          @updatedAt
+  horarios        ReservaHorario[]
+
+  @@index([data, recursoId])
+  @@index([usuarioId])
+  @@index([data])
+}
+
+// ===== JUNÇÃO: RESERVA ↔ HORÁRIOS (N:N) =====
+model ReservaHorario {
+  id        String  @id @default(cuid())
+  reservaId String
+  reserva   Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  horarioId String
+  horario   Horario @relation(fields: [horarioId], references: [id])
+
+  @@unique([reservaId, horarioId])
+  @@index([horarioId])
+}
+
+// ===== LOG DE AUDITORIA =====
+model LogAuditoria {
+  id         String   @id @default(cuid())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  acao       String
+  entidade   String
+  entidadeId String
+  detalhes   String?
+  criadoEm   DateTime @default(now())
+
+  @@index([criadoEm])
+}

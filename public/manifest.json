@@ -1,0 +1,19 @@
+{
+  "name": "Reservas — Escola Estadual Celso Rodrigues",
+  "short_name": "Reservas",
+  "description": "Sistema de reserva de equipamentos e espaços — Escola Estadual Celso Rodrigues. Desenvolvido por prof. Fábio Fabuloso — CISEB Celso Rodrigues/Santo Antônio do Tauá (PA) — 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAFC",
+  "theme_color": "#3B82F6",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "/icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

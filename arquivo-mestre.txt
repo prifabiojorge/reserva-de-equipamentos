@@ -1,0 +1,661 @@
+📐 PLANO MESTRE — Sistema de Reserva de Equipamentos e Espaços
+Projeto: CISEB Reservas
+Pasta-raiz: E:\Documents\DEGOO\CISEB2026\reserva-de-equipamentos
+🏭 PARTE 1 — FILOSOFIA DE ENGENHARIA (Produção + Software)
+Antes de escrever uma linha de código, vamos alinhar princípios de engenharia de produção com as decisões técnicas:
+
+Princípio Lean/Produção	Tradução no Software	Aplicação no Projeto
+Poka-Yoke (à prova de erros)	Validação no banco + UI que impede conflitos	O sistema bloqueia reserva se já existir outra no mesmo horário/recurso
+Kanban (sinal visual)	Dashboard visual tipo quadro semanal	O quadro Kanban se torna uma ferramenta visual de agendamento — como um ToDo bidimensional onde se vê o status de cada tarefa
+1
+Heijunka (nivelamento de carga)	Visão de ocupação/ociosidade por recurso	Gráficos de calor mostrando % de ocupação de cada recurso por dia/semana
+5S (organização)	Estrutura de pastas, código limpo, padrões	Arquitetura modular com separação rigorosa de responsabilidades
+Jidoka (parar e corrigir)	Detecção de conflito em tempo real	Notificação instantânea se alguém tenta reservar recurso já alocado
+Just-in-Time	Dado certo, hora certa, tela certa	Kanban é um sistema de agendamento para manufatura lean (também chamado just-in-time)
+2
+ — aqui: o professor vê apenas o que precisa, quando precisa
+Kaizen (melhoria contínua)	Versionamento semântico + feedback loop	Sistema de sugestões embutido + analytics de uso
+Muda (eliminar desperdício)	Zero WhatsApp, zero papel, zero retrabalho	Substituir 100% do processo manual por digital
+🧩 PARTE 2 — STACK TECNOLÓGICO ESCOLHIDO
+React.js continua dominando o cenário front-end EdTech, oferecendo arquitetura baseada em componentes que torna construir e manter interfaces complexas algo gerenciável
+3
+. Python com Django desponta como escolha líder de back-end para plataformas EdTech, porém
+3
+ para nosso caso — uma escola com necessidade de simplicidade, monorepo e zero infraestrutura — a melhor escolha é o Next.js fullstack com SQLite:
+
+Prisma é uma ótima ferramenta para interagir com bancos de dados e SQLite é um banco simples para começar
+4
+. Quando se usa SQLite, não é necessário configurar um banco de dados extra, porque o SQLite é apenas um arquivo no seu projeto
+4
+.
+
+Stack definitivo:
+text
+
+┌─────────────────────────────────────────────────┐
+│                  CISEB RESERVAS                  │
+├─────────────────────────────────────────────────┤
+│  FRONTEND    │ Next.js 15 (App Router)          │
+│              │ React 19 + TypeScript             │
+│              │ Tailwind CSS 4                    │
+│              │ shadcn/ui (componentes)           │
+│  BACKEND     │ Next.js API Routes / Server Actions│
+│  ORM         │ Prisma ORM (última versão estável)│
+│  DATABASE    │ SQLite (arquivo local)            │
+│  AUTH        │ NextAuth.js v5 (credenciais)      │
+│  PWA         │ Service Worker + next-pwa         │
+│  DEPLOY      │ Local (executável na rede escola) │
+│              │ OU Vercel (gratuito)              │
+└─────────────────────────────────────────────────┘
+Por que PWA?
+Para a maioria das aplicações de negócios — como sistemas de reserva, sites de conteúdo, ou ferramentas simples de produtividade — PWAs conseguem fornecer excelentes experiências offline
+5
+. PWA tornará seu produto disponível para usuários web e mobile com um único codebase. Essa abordagem unificada elimina a necessidade de desenvolver e manter apps nativos separados, reduzindo significativamente tempo e custos de desenvolvimento
+6
+.
+
+📁 PARTE 3 — ESTRUTURA DE PASTAS (5S aplicado)
+text
+
+E:\Documents\DEGOO\CISEB2026\reserva-de-equipamentos\
+│
+├── 📄 README.md                          # Documentação do projeto
+├── 📄 package.json
+├── 📄 tsconfig.json
+├── 📄 next.config.ts
+├── 📄 tailwind.config.ts
+├── 📄 .env                               # DATABASE_URL, NEXTAUTH_SECRET
+├── 📄 .env.example
+├── 📄 .gitignore
+│
+├── 📂 prisma/
+│   ├── schema.prisma                     # Modelos do banco de dados
+│   ├── seed.ts                           # Dados iniciais (recursos, horários, turnos)
+│   └── 📂 migrations/                   # Histórico de migrações
+│
+├── 📂 public/
+│   ├── manifest.json                     # PWA manifest
+│   ├── sw.js                             # Service Worker
+│   ├── icons/                            # Ícones PWA (192x192, 512x512)
+│   └── favicon.ico
+│
+├── 📂 src/
+│   ├── 📂 app/                           # Next.js App Router
+│   │   ├── layout.tsx                    # Layout raiz (com providers)
+│   │   ├── page.tsx                      # Home → Dashboard Kanban semanal
+│   │   ├── globals.css
+│   │   │
+│   │   ├── 📂 (auth)/                   # Grupo: Autenticação
+│   │   │   ├── login/page.tsx
+│   │   │   └── registro/page.tsx
+│   │   │
+│   │   ├── 📂 (dashboard)/              # Grupo: Área logada
+│   │   │   ├── layout.tsx               # Sidebar + Header
+│   │   │   ├── reservas/
+│   │   │   │   ├── page.tsx             # Quadro Kanban semanal
+│   │   │   │   ├── nova/page.tsx        # Formulário nova reserva
+│   │   │   │   └── [id]/page.tsx        # Detalhe/edição reserva
+│   │   │   ├── recursos/
+│   │   │   │   ├── page.tsx             # Lista de recursos/equipamentos
+│   │   │   │   └── [id]/page.tsx        # Detalhe do recurso + histórico
+│   │   │   ├── calendario/
+│   │   │   │   └── page.tsx             # Visão calendário mensal
+│   │   │   ├── relatorios/
+│   │   │   │   └── page.tsx             # Heijunka: analytics de ocupação
+│   │   │   └── configuracoes/
+│   │   │       └── page.tsx             # Horários, turnos, ano letivo
+│   │   │
+│   │   └── 📂 api/                      # API Routes (quando necessário)
+│   │       └── auth/[...nextauth]/route.ts
+│   │
+│   ├── 📂 components/                    # Componentes reutilizáveis
+│   │   ├── 📂 ui/                       # shadcn/ui base components
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── toast.tsx
+│   │   │   └── calendar.tsx
+│   │   ├── 📂 reserva/                  # Componentes de domínio
+│   │   │   ├── KanbanBoard.tsx          # ⭐ Quadro semanal principal
+│   │   │   ├── KanbanColumn.tsx         # Coluna = 1 dia da semana
+│   │   │   ├── KanbanCard.tsx           # Card = 1 reserva
+│   │   │   ├── ReservaForm.tsx          # Formulário com validação
+│   │   │   ├── ConflictAlert.tsx        # ⚡ Alerta Poka-Yoke
+│   │   │   ├── TimeSlotPicker.tsx       # Seletor de horários
+│   │   │   └── RecursoSelector.tsx      # Dropdown de recursos
+│   │   ├── 📂 layout/
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── MobileNav.tsx
+│   │   │   └── WeekNavigator.tsx        # Navegador ← semana →
+│   │   └── 📂 charts/
+│   │       ├── OccupancyHeatmap.tsx     # Heijunka visual
+│   │       └── UsageBarChart.tsx
+│   │
+│   ├── 📂 lib/                           # Utilitários e configurações
+│   │   ├── prisma.ts                    # Singleton do Prisma Client
+│   │   ├── auth.ts                      # Configuração NextAuth
+│   │   ├── utils.ts                     # Funções helper
+│   │   ├── constants.ts                 # Turnos, horários-padrão
+│   │   └── validators.ts               # Schemas Zod para validação
+│   │
+│   ├── 📂 actions/                       # Server Actions (Next.js)
+│   │   ├── reservas.ts                  # CRUD de reservas
+│   │   ├── recursos.ts                  # CRUD de recursos
+│   │   ├── usuarios.ts                  # CRUD de usuários
+│   │   └── conflitos.ts                 # ⭐ Detecção de conflitos
+│   │
+│   ├── 📂 hooks/                         # Custom React Hooks
+│   │   ├── useReservas.ts
+│   │   ├── useWeekNavigation.ts
+│   │   └── useConflictCheck.ts
+│   │
+│   └── 📂 types/                         # TypeScript types/interfaces
+│       ├── reserva.ts
+│       ├── recurso.ts
+│       └── usuario.ts
+│
+├── 📂 docs/                              # Documentação do projeto
+│   ├── ARCHITECTURE.md                  # Decisões arquiteturais
+│   ├── DATABASE.md                      # Modelo ER documentado
+│   ├── DEPLOY.md                        # Como instalar na escola
+│   └── USER-GUIDE.md                    # Manual do professor
+│
+└── 📂 scripts/                           # Scripts auxiliares
+    ├── seed-recursos.ts                 # Popular recursos padrão
+    └── backup-db.ts                     # Backup do SQLite
+🗄️ PARTE 4 — MODELO DE DADOS (Prisma Schema)
+prisma
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USUÁRIOS =====
+model Usuario {
+  id            String      @id @default(cuid())
+  nome          String
+  email         String      @unique
+  senha         String      // hash bcrypt
+  papel         String      @default("PROFESSOR") // PROFESSOR | COORDENADOR | ADMIN
+  ativo         Boolean     @default(true)
+  criadoEm      DateTime    @default(now())
+  atualizadoEm  DateTime    @updatedAt
+  reservas      Reserva[]
+}
+
+// ===== CATEGORIAS DE RECURSOS =====
+model CategoriaRecurso {
+  id        String    @id @default(cuid())
+  nome      String    @unique  // "Espaço" | "Equipamento" | "Kit"
+  icone     String?             // emoji ou nome do ícone
+  recursos  Recurso[]
+}
+
+// ===== RECURSOS (Equipamentos e Espaços) =====
+model Recurso {
+  id              String            @id @default(cuid())
+  nome            String            // "Laboratório de Informática"
+  descricao       String?
+  categoriaId     String
+  categoria       CategoriaRecurso  @relation(fields: [categoriaId], references: [id])
+  quantidadeTotal Int               @default(1)  // Ex: 30 Chromebooks
+  quantidadeMinima Int              @default(1)  // Mínimo reservável
+  ativo           Boolean           @default(true)
+  cor             String?           // Cor no Kanban
+  criadoEm        DateTime          @default(now())
+  reservas        Reserva[]
+
+  @@index([categoriaId])
+}
+
+// ===== CONFIGURAÇÃO DE HORÁRIOS (TURNOS + AULAS) =====
+model Turno {
+  id        String    @id @default(cuid())
+  nome      String    @unique  // "Manhã" | "Tarde" | "Noite"
+  ordem     Int                // 1, 2, 3
+  horarios  Horario[]
+}
+
+model Horario {
+  id          String    @id @default(cuid())
+  turnoId     String
+  turno       Turno     @relation(fields: [turnoId], references: [id])
+  numero      Int                // 1º horário, 2º horário...
+  horaInicio  String             // "07:00"
+  horaFim     String             // "07:50"
+  reservas    ReservaHorario[]
+
+  @@unique([turnoId, numero])
+  @@index([turnoId])
+}
+
+// ===== RESERVAS =====
+model Reserva {
+  id              String            @id @default(cuid())
+  data            DateTime          // Data da reserva (só a data)
+  usuarioId       String
+  usuario         Usuario           @relation(fields: [usuarioId], references: [id])
+  recursoId       String
+  recurso         Recurso           @relation(fields: [recursoId], references: [id])
+  quantidadeUsada Int               @default(1) // Ex: 8 dos 30 Chromebooks
+  observacao      String?
+  status          String            @default("CONFIRMADA") // CONFIRMADA | CANCELADA | PENDENTE
+  criadoEm        DateTime          @default(now())
+  atualizadoEm    DateTime          @updatedAt
+  horarios        ReservaHorario[]
+
+  @@index([data, recursoId])
+  @@index([usuarioId])
+  @@index([data])
+}
+
+// ===== JUNÇÃO: RESERVA ↔ HORÁRIOS (N:N) =====
+// Permite reservar "todos os horários" ou "2 últimos" etc.
+model ReservaHorario {
+  id          String    @id @default(cuid())
+  reservaId   String
+  reserva     Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  horarioId   String
+  horario     Horario   @relation(fields: [horarioId], references: [id])
+
+  @@unique([reservaId, horarioId])
+  @@index([horarioId])
+}
+
+// ===== LOG DE AUDITORIA =====
+model LogAuditoria {
+  id          String    @id @default(cuid())
+  usuarioId   String
+  acao        String    // "CRIAR" | "EDITAR" | "CANCELAR"
+  entidade    String    // "Reserva" | "Recurso"
+  entidadeId  String
+  detalhes    String?   // JSON com mudanças
+  criadoEm    DateTime  @default(now())
+
+  @@index([criadoEm])
+}
+⚡ PARTE 5 — MOTOR DE DETECÇÃO DE CONFLITOS (Poka-Yoke Digital)
+Este é o coração do sistema — a lógica que impede o "cruzamento" de reservas:
+
+TypeScript
+
+// src/actions/conflitos.ts
+"use server"
+
+import { prisma } from "@/lib/prisma"
+
+interface CheckConflictParams {
+  recursoId: string
+  data: Date
+  horarioIds: string[]
+  quantidadeDesejada: number
+  reservaIdExcluir?: string  // Para edição: excluir a própria reserva
+}
+
+interface ConflictResult {
+  hasConflict: boolean
+  conflicts: {
+    horarioNumero: number
+    horarioLabel: string      // "3º horário (09:30-10:20)"
+    professorNome: string
+    quantidadeJaReservada: number
+    quantidadeDisponivel: number
+  }[]
+  recursoCapacidadeTotal: number
+}
+
+export async function checkConflicts(
+  params: CheckConflictParams
+): Promise<ConflictResult> {
+  
+  const { recursoId, data, horarioIds, quantidadeDesejada, reservaIdExcluir } = params
+
+  // 1. Buscar capacidade total do recurso
+  const recurso = await prisma.recurso.findUniqueOrThrow({
+    where: { id: recursoId }
+  })
+
+  // 2. Para cada horário solicitado, verificar reservas existentes
+  const reservasExistentes = await prisma.reservaHorario.findMany({
+    where: {
+      horarioId: { in: horarioIds },
+      reserva: {
+        data: data,
+        recursoId: recursoId,
+        status: { not: "CANCELADA" },
+        ...(reservaIdExcluir ? { id: { not: reservaIdExcluir } } : {})
+      }
+    },
+    include: {
+      horario: { include: { turno: true } },
+      reserva: { include: { usuario: true } }
+    }
+  })
+
+  // 3. Agrupar por horário e somar quantidades
+  const conflictMap = new Map<string, {
+    horarioNumero: number
+    horarioLabel: string
+    professores: string[]
+    quantidadeTotal: number
+  }>()
+
+  for (const rh of reservasExistentes) {
+    const key = rh.horarioId
+    const existing = conflictMap.get(key) || {
+      horarioNumero: rh.horario.numero,
+      horarioLabel: `${rh.horario.numero}º horário (${rh.horario.horaInicio}-${rh.horario.horaFim})`,
+      professores: [],
+      quantidadeTotal: 0
+    }
+    existing.professores.push(rh.reserva.usuario.nome)
+    existing.quantidadeTotal += rh.reserva.quantidadeUsada
+    conflictMap.set(key, existing)
+  }
+
+  // 4. Detectar conflitos reais (capacidade excedida)
+  const conflicts = []
+  for (const [, info] of conflictMap) {
+    const disponivel = recurso.quantidadeTotal - info.quantidadeTotal
+    if (disponivel < quantidadeDesejada) {
+      conflicts.push({
+        horarioNumero: info.horarioNumero,
+        horarioLabel: info.horarioLabel,
+        professorNome: info.professores.join(", "),
+        quantidadeJaReservada: info.quantidadeTotal,
+        quantidadeDisponivel: Math.max(0, disponivel)
+      })
+    }
+  }
+
+  return {
+    hasConflict: conflicts.length > 0,
+    conflicts,
+    recursoCapacidadeTotal: recurso.quantidadeTotal
+  }
+}
+Regras de negócio extraídas da mensagem de WhatsApp:
+Cenário real (do WhatsApp)	Regra no sistema
+"Eliana: Lab de Informática (todos os horários)"	Recurso espaço: quantidade = 1, bloqueia todos os horários da manhã
+"Luiz - Chromebooks dois últimos horários"	Recurso equipamento: quantidade parcial (ex: 15 de 30 Chromebooks) em horários específicos
+"Marília - Lab (8 Chromebooks) e data show Epson"	Duas reservas separadas: 8 unidades dos Chromebooks + 1 data show
+"CISEB - Chromebooks - todos os horários"	Reserva institucional cobrindo todo o turno
+"CISEB - 3 unidades de Chromebooks"	Reserva parcial: 3 de N total
+🎨 PARTE 6 — INTERFACE (Quadro Kanban Semanal)
+Tela Principal — Visão Semanal tipo Kanban:
+text
+
+┌──────────────────────────────────────────────────────────────────┐
+│  CISEB Reservas              ← Sem. 27/03 - 02/04 →    [+ Nova] │
+│  ☀️ MANHÃ                                                        │
+├──────────┬──────────┬──────────┬──────────┬──────────────────────┤
+│  SEG 30  │  TER 31  │  QUA 01  │  QUI 02  │  SEX 03              │
+├──────────┼──────────┼──────────┼──────────┼──────────────────────┤
+│ ┌──────┐ │          │          │ ┌──────┐ │                      │
+│ │🖥️ Lab │ │          │          │ │🖥️ Lab │ │                      │
+│ │Eliana│ │          │          │ │Marília│ │                      │
+│ │Todos │ │          │          │ │8 Chr+ │ │                      │
+│ │  hrs  │ │          │          │ │Epson  │ │                      │
+│ └──────┘ │          │          │ └──────┘ │                      │
+│ ┌──────┐ │          │          │          │                      │
+│ │💻 Chr │ │          │          │          │                      │
+│ │Luiz  │ │          │          │          │                      │
+│ │Últ.2h│ │          │          │          │                      │
+│ └──────┘ │          │          │          │                      │
+├──────────┴──────────┴──────────┴──────────┴──────────────────────┤
+│  🌙 TARDE                                                        │
+├──────────┬──────────┬──────────┬──────────┬──────────────────────┤
+│ ┌──────┐ │          │ ┌──────┐ │ ┌──────┐ │ ┌──────┐            │
+│ │💻 Chr │ │          │ │💻 Chr │ │ │💻 Chr │ │ │💻 Chr │            │
+│ │CISEB │ │          │ │CISEB │ │ │CISEB │ │ │CISEB │            │
+│ │Últ.2h│ │          │ │Últ.2h│ │ │3 uni.│ │ │Todos │            │
+│ └──────┘ │          │ └──────┘ │ │Todos │ │ │  hrs  │            │
+│          │          │          │ └──────┘ │ └──────┘            │
+│          │          │          │ ┌──────┐ │                      │
+│          │          │          │ │🖥️ Lab │ │                      │
+│          │          │          │ │Marília│ │                      │
+│          │          │          │ │Todos │ │                      │
+│          │          │          │ └──────┘ │                      │
+└──────────┴──────────┴──────────┴──────────┴──────────────────────┘
+Cores dos cards (código visual Kanban):
+🟦 Azul = Espaços (Lab, Auditório, Sala de Leitura)
+🟩 Verde = Equipamentos disponíveis (Chromebooks)
+🟧 Laranja = Equipamentos parcialmente ocupados (ex: 20 de 30 Chromebooks usados)
+🟥 Vermelho = Recurso 100% alocado naquele horário
+⬜ Cinza = Reserva cancelada
+📅 PARTE 7 — CRONOGRAMA DE DESENVOLVIMENTO (Kanban de Sprints)
+Sprint	Duração	Entregáveis	Princípio Lean
+Sprint 0	2 dias	Setup projeto, Prisma, schema, seed, auth básica	5S (organização)
+Sprint 1	5 dias	CRUD de Recursos + CRUD de Horários/Turnos + Tela de configuração	Padronização
+Sprint 2	7 dias	⭐ Motor de conflitos + Formulário de reserva com validação em tempo real	Poka-Yoke
+Sprint 3	7 dias	⭐ Quadro Kanban semanal + navegação por semanas + cards visuais	Kanban Visual
+Sprint 4	5 dias	Visão calendário mensal + Heatmap de ocupação	Heijunka
+Sprint 5	3 dias	PWA: Service Worker, manifest, offline, "instalar" no celular	Just-in-Time
+Sprint 6	3 dias	Relatórios + Log de auditoria + exportar PDF semanal	Kaizen (métricas)
+Sprint 7	3 dias	Testes, ajustes, deploy, documentação, treinamento	Melhoria contínua
+Total estimado: ~5 semanas (1 pessoa) ou ~2,5 semanas (2 pessoas)
+
+🚀 PARTE 8 — COMANDOS PARA INICIAR
+8.1. Criar o projeto:
+Bash
+
+# Navegar até a pasta
+cd "E:\Documents\DEGOO\CISEB2026"
+
+# Criar o projeto Next.js
+npx create-next-app@latest reserva-de-equipamentos \
+  --typescript \
+  --tailwind \
+  --eslint \
+  --app \
+  --src-dir \
+  --import-alias "@/*" \
+  --turbopack
+
+cd reserva-de-equipamentos
+8.2. Instalar dependências:
+Bash
+
+# ORM + Banco
+npm install prisma @prisma/client
+npm install -D tsx
+
+# Auth
+npm install next-auth@beta @auth/prisma-adapter
+
+# UI Components (shadcn/ui)
+npx shadcn@latest init
+npx shadcn@latest add button card dialog select badge \
+  toast calendar dropdown-menu avatar separator \
+  form input label textarea popover command
+
+# Validação
+npm install zod @hookform/resolvers react-hook-form
+
+# Utilitários
+npm install date-fns lucide-react clsx
+
+# Hash de senha
+npm install bcryptjs
+npm install -D @types/bcryptjs
+
+# PWA
+npm install next-pwa
+8.3. Inicializar Prisma com SQLite:
+Bash
+
+npx prisma init --datasource-provider sqlite
+Configurar .env:
+
+env
+
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="gerar-um-secret-aqui-com-openssl-rand"
+NEXTAUTH_URL="http://localhost:3000"
+8.4. Após criar o schema, rodar migrações:
+Bash
+
+npx prisma migrate dev --name init
+npx prisma db seed        # Popular com recursos e horários
+npx prisma studio         # GUI para ver os dados
+8.5. Rodar o projeto:
+Bash
+
+npm run dev
+# → http://localhost:3000
+📊 PARTE 9 — SEED (Dados Iniciais da Escola)
+TypeScript
+
+// prisma/seed.ts
+import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
+
+const prisma = new PrismaClient()
+
+async function main() {
+  // ===== CATEGORIAS =====
+  const catEspaco = await prisma.categoriaRecurso.create({
+    data: { nome: "Espaço", icone: "🏫" }
+  })
+  const catEquipamento = await prisma.categoriaRecurso.create({
+    data: { nome: "Equipamento", icone: "💻" }
+  })
+
+  // ===== RECURSOS =====
+  await prisma.recurso.createMany({
+    data: [
+      { nome: "Laboratório de Informática", categoriaId: catEspaco.id, 
+        quantidadeTotal: 1, cor: "#3B82F6" },
+      { nome: "Auditório", categoriaId: catEspaco.id, 
+        quantidadeTotal: 1, cor: "#8B5CF6" },
+      { nome: "Sala de Leitura", categoriaId: catEspaco.id, 
+        quantidadeTotal: 1, cor: "#06B6D4" },
+      { nome: "Chromebooks", categoriaId: catEquipamento.id, 
+        quantidadeTotal: 30, quantidadeMinima: 1, cor: "#10B981" },
+      { nome: "Data Show Epson", categoriaId: catEquipamento.id, 
+        quantidadeTotal: 2, cor: "#F59E0B" },
+      { nome: "TV", categoriaId: catEquipamento.id, 
+        quantidadeTotal: 1, cor: "#EF4444" },
+    ]
+  })
+
+  // ===== TURNOS + HORÁRIOS =====
+  const manha = await prisma.turno.create({ data: { nome: "Manhã", ordem: 1 } })
+  const tarde = await prisma.turno.create({ data: { nome: "Tarde", ordem: 2 } })
+
+  const horariosManha = [
+    { numero: 1, horaInicio: "07:00", horaFim: "07:50" },
+    { numero: 2, horaInicio: "07:50", horaFim: "08:40" },
+    { numero: 3, horaInicio: "08:40", horaFim: "09:30" },
+    // INTERVALO 09:30 - 09:50
+    { numero: 4, horaInicio: "09:50", horaFim: "10:40" },
+    { numero: 5, horaInicio: "10:40", horaFim: "11:30" },
+    { numero: 6, horaInicio: "11:30", horaFim: "12:20" },
+  ]
+
+  const horariosTarde = [
+    { numero: 1, horaInicio: "13:00", horaFim: "13:50" },
+    { numero: 2, horaInicio: "13:50", horaFim: "14:40" },
+    { numero: 3, horaInicio: "14:40", horaFim: "15:30" },
+    // INTERVALO 15:30 - 15:50
+    { numero: 4, horaInicio: "15:50", horaFim: "16:40" },
+    { numero: 5, horaInicio: "16:40", horaFim: "17:30" },
+    { numero: 6, horaInicio: "17:30", horaFim: "18:20" },
+  ]
+
+  for (const h of horariosManha) {
+    await prisma.horario.create({ data: { ...h, turnoId: manha.id } })
+  }
+  for (const h of horariosTarde) {
+    await prisma.horario.create({ data: { ...h, turnoId: tarde.id } })
+  }
+
+  // ===== USUÁRIOS INICIAIS =====
+  const senhaHash = await bcrypt.hash("ciseb2026", 10)
+  
+  await prisma.usuario.createMany({
+    data: [
+      { nome: "Administrador", email: "admin@ciseb.edu.br", 
+        senha: senhaHash, papel: "ADMIN" },
+      { nome: "Eliana", email: "eliana@ciseb.edu.br", 
+        senha: senhaHash, papel: "PROFESSOR" },
+      { nome: "Luiz", email: "luiz@ciseb.edu.br", 
+        senha: senhaHash, papel: "PROFESSOR" },
+      { nome: "Marília Barros", email: "marilia@ciseb.edu.br", 
+        senha: senhaHash, papel: "PROFESSOR" },
+      { nome: "Vanessa", email: "vanessa@ciseb.edu.br", 
+        senha: senhaHash, papel: "PROFESSOR" },
+      { nome: "Jhonatan", email: "jhonatan@ciseb.edu.br", 
+        senha: senhaHash, papel: "PROFESSOR" },
+      { nome: "CISEB", email: "ciseb@ciseb.edu.br", 
+        senha: senhaHash, papel: "COORDENADOR" },
+    ]
+  })
+
+  console.log("✅ Seed executado com sucesso!")
+}
+
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect())
+🔒 PARTE 10 — PERMISSÕES (Jidoka — parar se não for permitido)
+Ação	PROFESSOR	COORDENADOR	ADMIN
+Ver todas as reservas	✅	✅	✅
+Criar reserva própria	✅	✅	✅
+Editar reserva própria	✅	✅	✅
+Cancelar reserva própria	✅	✅	✅
+Editar/cancelar reserva de outros	❌	✅	✅
+Gerenciar recursos	❌	❌	✅
+Gerenciar horários/turnos	❌	❌	✅
+Gerenciar usuários	❌	❌	✅
+Ver relatórios	❌	✅	✅
+Ver log de auditoria	❌	❌	✅
+📱 PARTE 11 — PWA (Funcionar no Celular dos Professores)
+Uma das funcionalidades destaque das PWAs é sua capacidade de funcionar offline. Isso é alcançado através de service workers — scripts que rodam em segundo plano, separados da página web, habilitando funcionalidades como cache de conteúdo e notificações push. Quando um usuário visita uma PWA pela primeira vez, o service worker faz cache de assets essenciais. Isso significa que mesmo se o usuário perder a conexão de internet, a PWA ainda consegue entregar conteúdo
+7
+.
+
+JavaScript
+
+// public/manifest.json
+{
+  "name": "CISEB Reservas",
+  "short_name": "Reservas",
+  "description": "Sistema de reserva de equipamentos e espaços",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1E293B",
+  "theme_color": "#3B82F6",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+🧪 PARTE 12 — CHECKLIST DE QUALIDADE (Kaizen)
+ Zero conflitos: impossível reservar recurso já 100% alocado
+ Reserva parcial: possível reservar 8 de 30 Chromebooks
+ Multi-recurso: professor pode reservar Lab + Data Show na mesma ação
+ Visão semanal: quadro Kanban mostra semana inteira de uma vez
+ Filtros: por recurso, por professor, por turno
+ PWA instalável: professor adiciona na tela inicial do celular
+ Offline: visualização do quadro funciona sem internet (leitura)
+ Responsivo: funciona no desktop da secretaria E no celular do professor
+ Auditoria: todo criar/editar/cancelar fica logado
+ Backup: script de backup automático do arquivo SQLite
+ Seed configurável: horários e recursos facilmente editáveis pelo ADMIN
+🎯 RESUMO EXECUTIVO
+Este sistema transforma um processo caótico de WhatsApp em um quadro Kanban digital, onde cada "card" é uma reserva, cada "coluna" é um dia da semana, e o motor de Poka-Yoke impede fisicamente que dois professores reservem o mesmo recurso no mesmo horário — assim como numa linha de produção Toyota, onde o erro é impossível por design, não por disciplina humana.
+
+O propósito central do Lean é minimizar atividades de desperdício sem sacrificar produtividade. O objetivo principal é criar mais valor para o cliente sem gerar mais custos.
+8
+ Neste caso, o "cliente" é o professor, o "valor" é a reserva sem conflito, e o "desperdício eliminado" é o WhatsApp.
