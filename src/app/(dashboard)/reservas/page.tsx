@@ -1,7 +1,15 @@
 import { Suspense } from "react"
-import { parseISO, startOfWeek } from "date-fns"
+import { parseISO, addDays, startOfDay } from "date-fns"
 import { auth } from "@/lib/auth"
 import { KanbanBoard } from "@/components/reserva/KanbanBoard"
+
+// Força o início da semana na segunda-feira
+function forceMonday(date: Date): Date {
+  const d = startOfDay(new Date(date))
+  const dow = d.getDay()
+  const diff = dow === 0 ? -6 : 1 - dow
+  return addDays(d, diff)
+}
 
 interface PageProps {
   searchParams: Promise<{ semana?: string }>
@@ -13,9 +21,9 @@ export default async function ReservasPage({ searchParams }: PageProps) {
 
   let weekStart: Date
   if (params.semana) {
-    weekStart = startOfWeek(parseISO(params.semana), { weekStartsOn: 1 })
+    weekStart = forceMonday(parseISO(params.semana))
   } else {
-    weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    weekStart = forceMonday(new Date())
   }
 
   return (

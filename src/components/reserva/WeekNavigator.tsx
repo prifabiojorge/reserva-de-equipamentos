@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import {
-  endOfWeek,
+  addDays,
   addWeeks,
   subWeeks,
   format,
-  getDay,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -17,7 +16,8 @@ interface WeekNavigatorProps {
 export function WeekNavigator({ currentWeekStart }: WeekNavigatorProps) {
   const router = useRouter()
 
-  const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 })
+  // Segunda + 4 dias = Sexta
+  const weekEnd = addDays(currentWeekStart, 4)
   const prevWeek = subWeeks(currentWeekStart, 1)
   const nextWeek = addWeeks(currentWeekStart, 1)
   const today = new Date()

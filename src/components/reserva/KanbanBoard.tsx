@@ -1,9 +1,7 @@
 import {
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
+  addDays,
   isSameDay,
-  getDay,
+  startOfDay,
 } from "date-fns"
 import { getReservasPorPeriodo } from "@/actions/reservas"
 import { WeekNavigator } from "./WeekNavigator"
@@ -13,21 +11,26 @@ interface KanbanBoardProps {
   weekStart: Date
 }
 
+// Força o início da semana na segunda-feira (dow 1)
+function forceMonday(date: Date): Date {
+  const d = startOfDay(new Date(date))
+  const dow = d.getDay() // 0=dom, 1=seg, ..., 6=sáb
+  const diff = dow === 0 ? -6 : 1 - dow
+  return addDays(d, diff)
+}
+
 export async function KanbanBoard({ weekStart }: KanbanBoardProps) {
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
-  const allDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const monday = forceMonday(weekStart)
+  const friday = addDays(monday, 4)
 
-  // Apenas dias úteis (seg=1 até sex=5)
-  const workDays = allDays.filter((d) => {
-    const dow = getDay(d)
-    return dow >= 1 && dow <= 5
-  })
+  // Segunda a Sexta (5 dias úteis)
+  const workDays = [0, 1, 2, 3, 4].map((i) => addDays(monday, i))
 
-  const reservas = await getReservasPorPeriodo(weekStart, weekEnd)
+  const reservas = await getReservasPorPeriodo(monday, friday)
 
   return (
     <div>
-      <WeekNavigator currentWeekStart={weekStart} />
+      <WeekNavigator currentWeekStart={monday} />
 
       {/* Legenda */}
       <div className="flex gap-4 mb-3 text-[10px] text-slate-500">
@@ -67,7 +70,7 @@ export async function KanbanBoard({ weekStart }: KanbanBoardProps) {
           </div>
         </div>
 
-        {/* Colunas de dias */}
+        {/* Colunas de dias - SEMPRE Segunda a Sexta */}
         <div className="flex flex-1">
           {workDays.map((day) => {
             const dayReservas = reservas.filter((r) =>
