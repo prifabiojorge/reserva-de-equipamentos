@@ -22,8 +22,8 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  const isAdmin = session.user.papel === "ADMIN"
-  const isCoord = session.user.papel === "COORDENADOR"
+  const isAdmin = session.user?.papel === "ADMIN"
+  const isCoord = session.user?.papel === "COORDENADOR"
 
   const filteredNav = navItems.filter((item) => {
     if (item.href === "/configuracoes" && !isAdmin) return false
